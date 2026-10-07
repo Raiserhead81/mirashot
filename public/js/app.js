@@ -14,6 +14,42 @@
   let currentHost = 'mirashot';
   let aiConfigured = null; // null = unbekannt
 
+  /* ---------- Theme (Hell = Default, Dunkel optional) ---------- */
+  function initTheme() {
+    let theme = 'light';
+    try { theme = localStorage.getItem('mirashot-theme') === 'dark' ? 'dark' : 'light'; } catch { /* egal */ }
+    applyTheme(theme);
+    const t = $('#themeToggle');
+    if (t) {
+      t.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        try { localStorage.setItem('mirashot-theme', next); } catch { /* egal */ }
+      });
+    }
+  }
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    const t = $('#themeToggle');
+    if (t) t.textContent = theme === 'dark' ? 'Hell' : 'Dunkel';
+  }
+
+  /* ---------- Auswahl-Hilfe (Bildschirm-Tab, ausblendbar) ---------- */
+  function initPickerHelp() {
+    const help = $('#pickerHelp');
+    if (!help) return;
+    let hidden = false;
+    try { hidden = localStorage.getItem('mirashot-hide-picker-help') === '1'; } catch { /* egal */ }
+    help.classList.toggle('hidden', hidden);
+    const d = $('#helpDismiss');
+    if (d) {
+      d.addEventListener('click', () => {
+        help.classList.add('hidden');
+        try { localStorage.setItem('mirashot-hide-picker-help', '1'); } catch { /* egal */ }
+      });
+    }
+  }
+
   /* ---------- Status: immer im SICHTBAREN Bereich ausgeben ---------- */
   function statusTarget() {
     if (!editorSection.classList.contains('hidden')) return $('#editorStatus');
@@ -109,7 +145,12 @@
     setStatus('Browser-Dialog sollte offen sein — bitte Bildschirm/Fenster wählen …', 'info');
     let stream;
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false });
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 30 },
+        audio: false,
+        selfBrowserSurface: 'exclude',   // unseren eigenen Tab gar nicht erst anbieten
+        surfaceSwitching: 'include',     // Quelle kann während der Aufnahme gewechselt werden
+      });
     } catch (err) {
       const name = (err && err.name) || '';
       if (name === 'NotAllowedError') {
@@ -141,7 +182,9 @@
       stream.getTracks().forEach((t) => t.stop());
       const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
       await loadBlobIntoEditor(blob, 'bildschirm');
-      setStatus('Bildschirmfoto bereit — rein lokal aufgenommen, nichts wurde übertragen.', 'ok');
+      let tip = '';
+      try { if (!sessionStorage.getItem('mirashot-share-tip')) { tip = 'share-tip'; sessionStorage.setItem('mirashot-share-tip', '1'); } } catch { /* egal */ }
+      setStatus('Bildschirmfoto bereit — rein lokal aufgenommen, nichts wurde übertragen.' + (tip ? ' <br><strong>Tipp fürs nächste Mal:</strong> Der Browser fragt aus Sicherheitsgründen bei jeder Aufnahme neu. Im Dialog steht deine zuletzt genutzte Quelle ganz oben; bei Tab-Freigabe „Dieses Mal und jedes Mal“ ankreuzen, falls angeboten. Die macOS-Freigabe (Datenschutz &amp; Sicherheit → Bildschirmaufnahme) gilt dauerhaft — danach bleibt nur noch der Klick.' : ''), 'ok');
     } catch (err) {
       if (stream) stream.getTracks().forEach((t) => t.stop());
       setStatus('Aufnahme fehlgeschlagen: ' + err.message + ' — Alternativ Screenshot (⌘⇧4) machen und unten in das Drop-Feld ziehen.', 'err');
@@ -409,6 +452,8 @@
     bindAiButtons();
     bindUploadFallback();
     initScreenTab();
+    initTheme();
+    initPickerHelp();
     refreshAiStatus();
     editor.render();
   }
