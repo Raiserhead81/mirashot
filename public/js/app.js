@@ -11,6 +11,7 @@
 
   let editor = null;
   let currentHost = 'mirashot';
+  let mappe = []; // Sammelmappe: nur im Arbeitsspeicher dieser Seite
 
   /* ---------- Theme (Hell = Default, Dunkel optional) ---------- */
   function initTheme() {
@@ -339,6 +340,50 @@
       $('#downloadNote').textContent = `Gespeichert als ${name}`;
       setStatus('PNG wurde heruntergeladen — nur von deinem Browser erzeugt.', 'ok');
     });
+    $('#addToMappeBtn').addEventListener('click', () => {
+      mappe.push({ dataUrl: editor.canvas.toDataURL('image/png'), label: currentHost });
+      renderMappe();
+      setStatus(`Zur Mappe hinzugefügt — ${mappe.length} Seite${mappe.length === 1 ? '' : 'n'}. Die Mappe bleibt nur im Arbeitsspeicher dieser Seite.`, 'ok');
+    });
+    $('#pdfBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        const pages = mappe.length ? mappe : [{ dataUrl: editor.canvas.toDataURL('image/png'), label: currentHost }];
+        const canvases = [];
+        for (const pg of pages) {
+          const img = new Image();
+          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = pg.dataUrl; });
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth;
+          c.height = img.naturalHeight;
+          const cx = c.getContext('2d');
+          cx.fillStyle = '#ffffff'; // JPEG ohne Transparenz-Ränder
+          cx.fillRect(0, 0, c.width, c.height);
+          cx.drawImage(img, 0, 0);
+          canvases.push(c);
+        }
+        const bytes = await window.MirashotPdf.build(canvases);
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const datum = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+        const name = `mirashot-mappe-${pages.length}seite${pages.length === 1 ? '' : 'n'}-${datum}.pdf`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        $('#downloadNote').textContent = `Gespeichert als ${name}`;
+        setStatus(`PDF erzeugt (${pages.length} Seite${pages.length === 1 ? '' : 'n'}) — komplett lokal in deinem Browser gebaut.`, 'ok');
+      } catch (err) {
+        setStatus('PDF fehlgeschlagen: ' + err.message, 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    });
     document.addEventListener('keydown', (e) => {
       if (!editorSection.classList.contains('hidden')) {
         const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement && document.activeElement.tagName);
@@ -351,6 +396,47 @@
     $('#deleteShapeBtn').addEventListener('click', () => editor.deleteSelected());
   }
 
+  /* ---------- Sammelmappe (nur RAM, keine Speicherung) ---------- */
+  function renderMappe() {
+    const bar = $('#mappeBar');
+    bar.classList.toggle('hidden', mappe.length === 0);
+    $('#mappeCount').textContent = `Mappe: ${mappe.length} Seite${mappe.length === 1 ? '' : 'n'} · nur im Arbeitsspeicher`;
+    const th = $('#mappeThumbs');
+    th.innerHTML = '';
+    mappe.forEach((pg, i) => {
+      const d = document.createElement('div');
+      d.className = 'thumb';
+      d.title = pg.label;
+      const img = document.createElement('img');
+      img.src = pg.dataUrl;
+      img.alt = pg.label;
+      img.addEventListener('click', () => loadMappePage(i));
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'thumb-x';
+      x.textContent = '×';
+      x.title = 'Aus Mappe entfernen';
+      x.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        mappe.splice(i, 1);
+        renderMappe();
+      });
+      d.append(img, x);
+      th.appendChild(d);
+    });
+  }
+
+  async function loadMappePage(i) {
+    const pg = mappe[i];
+    if (!pg) return;
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = pg.dataUrl; });
+    currentHost = pg.label;
+    editor.setImage(img, currentHost);
+    showEditor();
+    setStatus(`Mappe-Seite ${i + 1} geladen — weiter bearbeiten oder Herunterladen.`, 'ok');
+  }
+
   /* ---------- Start ---------- */
   function init() {
     editor = new window.MirashotEditor($('#editorCanvas'), {
@@ -361,6 +447,7 @@
       },
     });
     window.__mirashotEditor = editor; // E2E-Test-Zugriff (nur lesend genutzt)
+    window.__mirashotMappe = mappe;   // E2E-Test-Zugriff (Anzahl/Seiten)
     buildToolGrid();
     buildSwatches();
     bindEditorControls();

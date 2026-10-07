@@ -41,6 +41,12 @@ Bildauflösung, auf Desktop wie Touch. Der Name und das Orb-Gesicht stammen von
 - Zeichnung in **voller Bildauflösung** (Canvas = Bildgröße, Anzeige nur skaliert)
 - Download als `mirashot-<host>-<datum>.png`
 
+**Sammelmappe + PDF-Export (Schritt-für-Schritt über mehrere Screenshots)**
+- „Zur Mappe hinzufügen“ legt das aktuelle Bild als Seite ab — schlanke Leiste mit Mini-Thumbnails (Klick = Seite zurück in den Editor, × = entfernen), Zähler „Mappe: N Seiten“
+- „Neue Aufnahme“ lädt das nächste Bild, ohne die Mappe zu verwerfen — so entsteht der 1-2-3-Ablauf über mehrere Screenshots
+- „↓ PDF“ erzeugt aus der Mappe ein sauberes A4-PDF (eine Seite pro Bild, eingepasst mittig, dezente Seitenzahl) — **komplett lokal im Browser gebaut** mit einer eigenen, ~100-zeiligen PDF-Routine in Vanilla-JS (kein CDN, keine Library)
+- Die Mappe lebt ausschließlich im Arbeitsspeicher der Seite — kein LocalStorage, kein Server
+
 **Bearbeiten-Modus**
 - Erstes Werkzeug (Auswahl-Cursor): fertig gezeichnete Annotationen anklicken, verschieben, umfärben, löschen
 - Pfeile/Linien mit Endpunkt-Griffen (Richtung/Länge, Pfeilumdrehen), Rechteck/Ellipse mit Eckgriff

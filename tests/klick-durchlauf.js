@@ -179,6 +179,53 @@ function check(name, ok, detail) {
   check('PNG-Datei > 20 KB', fs.statSync(tmpDownload).size > 20000, `${fs.statSync(tmpDownload).size} Bytes`);
   fs.unlinkSync(tmpDownload);
 
+
+  /* ---------- 3b) Sammelmappe + PDF ---------- */
+  await page.click('#addToMappeBtn');
+  // Neue Aufnahme verwirft die Mappe nicht: zweite Seite aufnehmen
+  await page.click('#backBtn');
+  await page.click('.tab[data-tab="screen"]');
+  await page.setInputFiles('#fileInput', '/tmp/nonce.png');
+  await page.waitForSelector('#editorSection:not(.hidden)', { timeout: 15000 });
+  await page.click('#addToMappeBtn');
+  const mappeState = await page.evaluate(() => ({
+    n: window.__mirashotMappe.length,
+    visible: !document.querySelector('#mappeBar').classList.contains('hidden'),
+    countText: document.querySelector('#mappeCount').textContent,
+  }));
+  check('Mappe: 2 Seiten, Leiste sichtbar', mappeState.n === 2 && mappeState.visible && /2 Seiten/.test(mappeState.countText), mappeState.countText);
+
+  // Thumbnail-Klick lädt Seite 1 (annotierter Website-Shot, 1280 breit) zurück
+  await page.click('#mappeThumbs .thumb:first-child img');
+  await page.waitForTimeout(250);
+  const backW = await page.evaluate(() => window.__mirashotEditor.canvas.width);
+  check('Mappe: Thumbnail lädt Seite in Editor', backW === 1280, `canvas=${backW}`);
+
+  // PDF der ganzen Mappe erzeugen
+  const pdfPromise = page.waitForEvent('download', { timeout: 30000 });
+  await page.click('#pdfBtn');
+  const pdfDl = await pdfPromise;
+  check('PDF-Download startet', /\.pdf$/.test(pdfDl.suggestedFilename()), pdfDl.suggestedFilename());
+  await pdfDl.saveAs('/tmp/mirashot-mappe.pdf');
+  const pdfBuf = fs.readFileSync('/tmp/mirashot-mappe.pdf');
+  const pdfStr = pdfBuf.toString('latin1');
+  check('PDF: Header %PDF-1.4', pdfStr.startsWith('%PDF-1.4'));
+  check('PDF: Seitenzahl == 2', /\/Count 2 /.test(pdfStr));
+  check('PDF: 2 eingebettete JPEG-Bilder', (pdfStr.match(/\/Subtype \/Image/g) || []).length === 2);
+  check('PDF: xref + %%EOF', pdfStr.includes('startxref') && pdfStr.trimEnd().endsWith('%%EOF'));
+  check('PDF: plausible Größe', pdfBuf.length > 20000 && pdfBuf.length < 30 * 1024 * 1024, `${(pdfBuf.length / 1024).toFixed(0)} KB`);
+
+  // Chromium verarbeitet die Datei fehlerfrei (Laden oder sauberer PDF-Download)
+  const pdfPage = await browser.newPage();
+  let chromiumPdf = false;
+  pdfPage.on('download', (d) => { if (d.suggestedFilename().endsWith('.pdf')) chromiumPdf = true; });
+  try {
+    await pdfPage.goto('file:///tmp/mirashot-mappe.pdf', { timeout: 8000, waitUntil: 'load' });
+    chromiumPdf = true;
+  } catch { /* Download statt Anzeige gilt auch als "fehlerfrei verarbeitet" */ }
+  await pdfPage.close();
+  check('PDF: Chromium lädt/verarbeitet Datei', chromiumPdf);
+
   /* ---------- 4) Bildschirm-Tab -> Drop-Fallback ---------- */
   await page.click('#backBtn');
   await page.click('.tab[data-tab="screen"]');

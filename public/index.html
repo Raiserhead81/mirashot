@@ -117,14 +117,20 @@
           <div class="stage">
             <div class="stage-actions">
               <button class="btn ghost small" id="backBtn" type="button">← Neue Aufnahme</button>
+              <button class="btn small" id="addToMappeBtn" type="button" title="Aktuelles Bild als Seite in die Sammelmappe legen">＋ Zur Mappe hinzufügen</button>
               <span class="status ok" id="downloadNote" style="margin:0"></span>
               <button class="btn primary small" id="downloadBtn" type="button">↓ Herunterladen</button>
+              <button class="btn small" id="pdfBtn" type="button" title="Ganze Mappe als PDF (lokal erzeugt)">↓ PDF</button>
+            </div>
+            <div class="mappe-bar hidden" id="mappeBar">
+              <span id="mappeCount"></span>
+              <div class="mappe-thumbs" id="mappeThumbs"></div>
             </div>
             <div class="canvas-holder">
               <canvas id="editorCanvas" width="1280" height="800"></canvas>
             </div>
             <div class="privacy-note">
-              <strong>Ihr Bild verlässt diesen Browser nicht.</strong> Alles geschieht lokal auf Ihrem Gerät — nichts wird hochgeladen oder gespeichert.
+              <strong>Ihr Bild verlässt diesen Browser nicht.</strong> Alles geschieht lokal auf Ihrem Gerät — nichts wird hochgeladen oder gespeichert. Auch der PDF-Export entsteht lokal.
               URL-Shots: Die Adresse wird einmalig serverseitig abgerufen, nicht gespeichert.
             </div>
             <div class="status" id="editorStatus"></div>
@@ -142,6 +148,7 @@
   </div>
 
   <script src="/js/editor.js"></script>
+  <script src="/js/pdf.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>
