@@ -336,3 +336,22 @@ footer.site {
 .doc .hint { border-left: 3px solid var(--amber); padding: 8px 14px; background: rgba(251, 191, 36, 0.07); border-radius: 0 10px 10px 0; }
 
 .hidden { display: none !important; }
+
+/* ---------- Drop-Fallback ---------- */
+.dropzone {
+  margin-top: 14px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dropzone.over {
+  border-color: var(--cyan);
+  background: rgba(34, 211, 238, 0.08);
+  color: var(--text);
+}
+.dropzone input[type="file"] { display: none; }

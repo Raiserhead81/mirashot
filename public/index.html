@@ -87,8 +87,17 @@
           <p class="desc">Nimm einen Tab, ein Fenster oder den ganzen Bildschirm auf. Das passiert <strong>vollständig in deinem Browser</strong> — es fließt nichts über den Server. Danach landet das Bild direkt im Editor.</p>
           <button class="btn primary" id="screenBtn" type="button">Bildschirmaufnahme starten</button>
           <p class="status err hidden" id="screenHint"></p>
-          <div class="status" id="screenStatusNote" style="margin-top:10px;color:var(--muted);font-size:12.5px">
-            Auf Desktop-Browsern (Chrome, Edge, Firefox) verfügbar. Der Browser fragt vor der Aufnahme, welcher Bildschirm/Tab geteilt wird.
+          <div class="status" id="screenStatus"></div>
+          <div style="margin-top:10px;color:var(--muted);font-size:12.5px;line-height:1.6">
+            <strong>Am besten funktioniert Chrome oder Edge</strong> (Mac/Windows). Beim Klick fragt der Browser, was aufgenommen werden soll.
+            Am Mac braucht der Browser einmalig die Bildschirm-Aufnahme-Berechtigung: <em>Systemeinstellungen → Datenschutz &amp; Sicherheit → Bildschirmaufnahme → Browser anstellen</em>, dann Browser neu starten.
+          </div>
+          <div class="dropzone" id="dropZone">
+            <div>
+              <strong>Alternativ — immer ohne Berechtigungen:</strong> fertigen Screenshot (z.&nbsp;B. macOS ⌘⇧4) hierher ziehen …
+              <button class="btn small" id="uploadBtn" type="button">… oder Datei auswählen</button>
+              <input type="file" id="fileInput" accept="image/*" class="hidden">
+            </div>
           </div>
         </div>
       </section>
@@ -157,6 +166,7 @@
               Screenshots werden nur in deinem Browser bearbeitet — nichts wird hochgeladen oder gespeichert.
               URL-Shots: Die Adresse wird einmalig serverseitig abgerufen, nicht gespeichert.
             </div>
+            <div class="status" id="editorStatus"></div>
             <div class="ai-panel" id="aiPanel">
               <h3 id="aiTitle">KI-Analyse</h3>
               <p class="ai-note" id="aiNote"></p>

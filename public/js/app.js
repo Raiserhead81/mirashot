@@ -14,10 +14,17 @@
   let currentHost = 'mirashot';
   let aiConfigured = null; // null = unbekannt
 
-  /* ---------- Status ---------- */
+  /* ---------- Status: immer im SICHTBAREN Bereich ausgeben ---------- */
+  function statusTarget() {
+    if (!editorSection.classList.contains('hidden')) return $('#editorStatus');
+    if (!$('#screenPanel').classList.contains('hidden')) return $('#screenStatus');
+    return statusEl; // #captureStatus im URL-Panel
+  }
+
   function setStatus(msg, kind) {
-    statusEl.className = 'status ' + (kind || 'info');
-    statusEl.innerHTML = msg;
+    const el = statusTarget();
+    el.className = 'status ' + (kind || 'info');
+    el.innerHTML = msg;
   }
 
   function spin(msg) { setStatus(`<span class="spinner"></span>${msg}`, 'info'); }
@@ -98,23 +105,38 @@
   }
 
   async function captureScreen() {
+    // Sofort sichtbare Meldung (Status erscheint im Bildschirm-Panel)
+    setStatus('Browser-Dialog sollte offen sein — bitte Bildschirm/Fenster wählen …', 'info');
     let stream;
     try {
       stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false });
     } catch (err) {
-      setStatus('Bildschirmaufnahme abgebrochen oder blockiert.', 'err');
+      const name = (err && err.name) || '';
+      if (name === 'NotAllowedError') {
+        setStatus('Aufnahme abgebrochen oder blockiert. <strong>Am Mac fehlt oft die Bildschirm-Aufnahme-Berechtigung:</strong> Systemeinstellungen → Datenschutz &amp; Sicherheit → Bildschirmaufnahme → deinen Browser anstellen (dann Browser neu starten). Alternativ: Screenshot mit ⌘⇧4 machen und unten hierher ziehen.', 'err');
+      } else if (name === 'NotSupportedError' || name === 'TypeError') {
+        setStatus('Dieser Browser unterstützt keine Bildschirmaufnahme. <strong>Chrome oder Edge</strong> am Mac/Windows funktioniert. Alternativ: Screenshot mit ⌘⇧4 machen und unten in das Drop-Feld ziehen.', 'err');
+      } else if (name === 'AbortError') {
+        setStatus('Bildschirmaufnahme abgebrochen.', 'err');
+      } else {
+        setStatus('Aufnahme fehlgeschlagen: ' + (err && err.message ? err.message : name) + ' — Alternativ Screenshot (⌘⇧4) machen und unten in das Drop-Feld ziehen.', 'err');
+      }
       return;
     }
     try {
       const video = document.createElement('video');
       video.srcObject = stream;
       video.muted = true;
-      await video.play();
-      await new Promise((r) => setTimeout(r, 250)); // erster Frame
+      await video.play().catch(() => {});
+      // Warten bis echte Bilddaten ankommen (max. 3 s)
+      const t0 = Date.now();
+      while ((!video.videoWidth || !video.videoHeight) && Date.now() - t0 < 3000) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
       const c = document.createElement('canvas');
       c.width = video.videoWidth;
       c.height = video.videoHeight;
-      if (!c.width || !c.height) throw new Error('Kein Bildinhalt');
+      if (!c.width || !c.height) throw new Error('Kein Bildinhalt empfangen');
       c.getContext('2d').drawImage(video, 0, 0);
       stream.getTracks().forEach((t) => t.stop());
       const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
@@ -122,8 +144,52 @@
       setStatus('Bildschirmfoto bereit — rein lokal aufgenommen, nichts wurde übertragen.', 'ok');
     } catch (err) {
       if (stream) stream.getTracks().forEach((t) => t.stop());
-      setStatus('Aufnahme fehlgeschlagen: ' + err.message, 'err');
+      setStatus('Aufnahme fehlgeschlagen: ' + err.message + ' — Alternativ Screenshot (⌘⇧4) machen und unten in das Drop-Feld ziehen.', 'err');
     }
+  }
+
+  /* ---------- Fallback: Datei-Upload + Drag & Drop (immer verfügbar) ---------- */
+  async function loadFileIntoEditor(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) {
+      setStatus('Keine Bilddatei: ' + file.name, 'err');
+      return;
+    }
+    const label = (file.name || 'screenshot').replace(/\.[a-z0-9]+$/i, '').replace(/[^a-z0-9.-]+/gi, '-').slice(0, 40) || 'screenshot';
+    await loadBlobIntoEditor(file, label);
+    setStatus('Bild geladen: ' + file.name + ' — alles bleibt in deinem Browser.', 'ok');
+  }
+
+  function bindUploadFallback() {
+    const dz = $('#dropZone');
+    const input = $('#fileInput');
+    if (!dz || !input) return;
+    $('#uploadBtn').addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+      const f = input.files && input.files[0];
+      if (f) loadFileIntoEditor(f);
+      input.value = '';
+    });
+    ['dragenter', 'dragover'].forEach((ev) => dz.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dz.classList.add('over');
+    }));
+    ['dragleave', 'drop'].forEach((ev) => dz.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dz.classList.remove('over');
+    }));
+    dz.addEventListener('drop', (e) => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadFileIntoEditor(f);
+    });
+    // Direkt auf den Editor-Canvas ziehen: Bild ersetzen
+    const canvas = $('#editorCanvas');
+    ['dragenter', 'dragover'].forEach((ev) => canvas.addEventListener(ev, (e) => e.preventDefault()));
+    canvas.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadFileIntoEditor(f);
+    });
   }
 
   /* ---------- Editor sichtbar schalten ---------- */
@@ -171,7 +237,7 @@
         editor.tool = t;
         $$('#toolGrid .tool').forEach((x) => x.classList.toggle('active', x === b));
         $('#fontRow').classList.toggle('hidden', t !== 'text');
-        $('#canvas').style.cursor = t === 'text' ? 'text' : t === 'eraser' ? 'not-allowed' : 'crosshair';
+        $('#editorCanvas').style.cursor = t === 'text' ? 'text' : t === 'eraser' ? 'not-allowed' : 'crosshair';
       });
       grid.appendChild(b);
     });
@@ -331,7 +397,7 @@
 
   /* ---------- Start ---------- */
   function init() {
-    editor = new window.MirashotEditor($('#canvas'), {
+    editor = new window.MirashotEditor($('#editorCanvas'), {
       onChange: () => {
         $('#undoBtn').disabled = !editor.canUndo();
         $('#redoBtn').disabled = !editor.canRedo();
@@ -341,6 +407,7 @@
     buildSwatches();
     bindEditorControls();
     bindAiButtons();
+    bindUploadFallback();
     initScreenTab();
     refreshAiStatus();
     editor.render();
