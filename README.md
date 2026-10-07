@@ -123,3 +123,11 @@ public/         Frontend (Editor, Tabs, Datenschutzseite) — vanilla JS, keine 
 ## Lizenz
 
 MIT — siehe [LICENSE](LICENSE).
+
+## Tests
+
+```bash
+npx playwright install chromium
+npm run diag:screen          # Bildschirm-Tab + Fallbacks (Upload, Drag&Drop, Fehlermeldungen) — 10 Checks
+MIRA_URL=https://mirashot.gemivo.de/ npm run diag:screen   # gegen Live
+```

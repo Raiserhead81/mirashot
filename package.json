@@ -6,7 +6,8 @@
   "license": "MIT",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "diag:screen": "node tests/screen-tab-diagnose.js"
   },
   "engines": {
     "node": ">=20"
