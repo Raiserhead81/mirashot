@@ -1,0 +1,17 @@
+[Unit]
+Description=MIRASHOT — datenschutzkonforme Webseiten-Screenshots
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mirashot
+ExecStart=/usr/bin/node src/server.js
+EnvironmentFile=/etc/mirashot.env
+Restart=always
+RestartSec=3
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
