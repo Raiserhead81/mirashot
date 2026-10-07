@@ -41,15 +41,17 @@ Bildauflösung, auf Desktop wie Touch. Der Name und das Orb-Gesicht stammen von
 - Zeichnung in **voller Bildauflösung** (Canvas = Bildgröße, Anzeige nur skaliert)
 - Download als `mirashot-<host>-<datum>.png`
 
-**KI-Features (Opt-in, nur auf Klick)**
-- *KI-Analyse:* deutschsprachige Beschreibung + 3–5 Beobachtungen, mit Kopieren-Button
-- *Sensible Daten pixeln:* Vision-Modell liefert Bounding-Boxen (E-Mails, Telefonnummern, IBAN, Namen, Gesichter) → werden automatisch als Pixelate-Layer übernommen
-- *Alt-Text kopieren:* kurze Bildbeschreibung direkt in die Zwischenablage
-- Ohne konfigurierten Key: UI zeigt graceful „KI nicht konfiguriert“, alles andere funktioniert
+**Bearbeiten-Modus**
+- Erstes Werkzeug (Auswahl-Cursor): fertig gezeichnete Annotationen anklicken, verschieben, umfärben, löschen
+- Pfeile/Linien mit Endpunkt-Griffen (Richtung/Länge, Pfeilumdrehen), Rechteck/Ellipse mit Eckgriff
+- Text per Doppelklick nachträglich ändern — alles in Undo/Redo eingebunden
+
+**KI-API (Backend vorhanden, UI bewusst ohne KI-Sektion)**
+- Die Endpoints `/api/ai/*` bleiben im Code (für später); die UI sendet kein Bild — Datenschutztext entsprechend
 
 ## Datenschutz-Modell
 
-- Screenshots werden **nur im Browser bearbeitet** — nichts wird hochgeladen oder gespeichert.
+- Screenshots werden **nur im Browser bearbeitet** — **das Bild verlässt den Browser nie**, nichts wird hochgeladen oder gespeichert.
 - URL-Shots: die Adresse wird **einmalig serverseitig abgerufen und niemals gespeichert oder geloggt** (nginx-Access-Log nur mit `$uri`, ohne Query-String).
 - Keine Cookies, kein LocalStorage mit Nutzerinhalten, kein Analytics, keine externen CDNs/Fonts/Scripts (System-Font-Stack).
 - SSRF-Schutz: nur http/https; blockiert localhost, 127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, ::1, fc00::/7, 0.0.0.0 u.a. — und prüft **nach DNS-Resolve jede Ziel-IP erneut**.
