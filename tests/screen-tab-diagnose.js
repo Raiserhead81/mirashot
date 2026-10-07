@@ -18,7 +18,13 @@ function check(name, ok, detail) {
   });
   const page = await browser.newPage({ viewport: { width: 1400, height: 950 } });
   const errors = [];
-  page.on('console', (m) => { if (m.type() === 'error') errors.push('[console.error] ' + m.text()); });
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return;
+    // Kosmetik: Chromium meldet "camera policy" beim captureStream()-Strob des Tests
+    // (die App nutzt kein captureStream; display-capture ist als 'prompt' verfügbar).
+    if (/camera is not allowed/.test(m.text())) return;
+    errors.push('[console.error] ' + m.text());
+  });
   page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
 
   await page.goto(URL, { waitUntil: 'networkidle', timeout: 30000 });
