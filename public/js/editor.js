@@ -4,7 +4,7 @@
  * die Anzeige wird nur per CSS skaliert. Nichts verlässt den Browser. */
 
 (function () {
-  const TOOLS = ['pen', 'arrow', 'line', 'rect', 'ellipse', 'text', 'highlight', 'number', 'blur', 'pixel', 'eraser'];
+  const TOOLS = ['select', 'pen', 'arrow', 'line', 'rect', 'ellipse', 'text', 'highlight', 'number', 'blur', 'pixel', 'eraser'];
 
   class Editor {
     constructor(canvas, opts) {
@@ -23,7 +23,11 @@
       this.numberNext = 1;
       this.drawing = null; // Shape in Arbeit
       this.erasedDuringDrag = false;
-      this.textEdit = null; // {x,y,value,el}
+      this.textEdit = null; // {x,y,value,el,editIndex}
+      this.selected = null;     // Index in shapes (Bearbeiten-Modus)
+      this.dragMode = null;     // 'move' | 'a' | 'b' | 'resize'
+      this.dragStart = null;
+      this.dragMoved = false;
       this._bind();
     }
 
@@ -201,6 +205,9 @@
         : this.shapes;
       for (const s of shapes) this._drawShape(ctx, s);
       if (this.drawing) this._drawShape(ctx, this.drawing);
+      if (this.tool === 'select' && this.selected != null && this.shapes[this.selected]) {
+        this._drawSelection(this.shapes[this.selected]);
+      }
       if (this.opts.onChange) this.opts.onChange();
     }
 
@@ -219,6 +226,7 @@
     }
     undo() {
       if (this.histIndex <= 0) return;
+      this.selected = null;
       this.histIndex -= 1;
       this.shapes = JSON.parse(JSON.stringify(this.history[this.histIndex]));
       this._renumber();
@@ -226,6 +234,7 @@
     }
     redo() {
       if (this.histIndex >= this.history.length - 1) return;
+      this.selected = null;
       this.histIndex += 1;
       this.shapes = JSON.parse(JSON.stringify(this.history[this.histIndex]));
       this._renumber();
@@ -236,6 +245,7 @@
 
     clearAll(commit = true) {
       this.shapes = [];
+      this.selected = null;
       this.numberNext = 1;
       if (commit) {
         this.history = [[]];
@@ -267,11 +277,16 @@
         const p = this._pos(e);
         this._setPointerCapture(e);
 
+        if (this.tool === 'select') {
+          this._selectPointerDown(e, p);
+          return;
+        }
         if (this.tool === 'eraser') {
           this.erasedDuringDrag = this._eraseAt(p) || this.erasedDuringDrag;
           return;
         }
         if (this.tool === 'text') {
+          e.preventDefault(); // verhindert, dass der Browser den Textfeld-Fokus direkt wieder aufhebt
           this._openTextEdit(p);
           return;
         }
@@ -294,6 +309,10 @@
       c.addEventListener('pointermove', (e) => {
         if (!this.base) return;
         const p = this._pos(e);
+        if (this.tool === 'select' && this.selected != null && this.dragMode) {
+          this._selectDrag(p);
+          return;
+        }
         if (this.tool === 'eraser' && e.buttons) {
           this.erasedDuringDrag = this._eraseAt(p) || this.erasedDuringDrag;
           return;
@@ -316,6 +335,12 @@
       });
 
       const finish = () => {
+        if (this.tool === 'select') {
+          if (this.dragMode && this.dragMoved) this.commit(); // eine Aenderung = ein Undo-Schritt
+          this.dragMode = null;
+          this.dragMoved = false;
+          return;
+        }
         if (this.tool === 'eraser') {
           if (this.erasedDuringDrag) { this._renumber(); this.commit(); this.erasedDuringDrag = false; }
           return;
@@ -339,7 +364,17 @@
         this.commit();
       };
       c.addEventListener('pointerup', finish);
-      c.addEventListener('pointercancel', () => { this.drawing = null; this.render(); });
+      c.addEventListener('pointercancel', () => { this.drawing = null; this.dragMode = null; this.render(); });
+      c.addEventListener('dblclick', (e) => {
+        if (this.tool !== 'select' || !this.base) return;
+        e.preventDefault();
+        const p = this._pos(e);
+        const idx = this._hitIndex(p);
+        if (idx >= 0 && this.shapes[idx].type === 'text') {
+          this.selected = idx;
+          this._openTextEdit({ x: this.shapes[idx].x, y: this.shapes[idx].y }, this.shapes[idx]);
+        }
+      });
     }
 
     /* ---------- Radierer: Shape unter dem Punkt entfernen ---------- */
@@ -355,23 +390,161 @@
       return false;
     }
     _hit(s, p, tol) {
+      const bb = this._bbox(s);
+      if (!bb) return false;
+      const pad = s.type === 'number' || s.type === 'text' ? 0 : tol;
+      return p.x >= bb.x - pad && p.x <= bb.x + bb.w + pad && p.y >= bb.y - pad && p.y <= bb.y + bb.h + pad;
+    }
+
+    /* ---- Bearbeiten-Modus (Auswahl-Cursor) ---- */
+
+    _bbox(s) {
       if (s.points) {
-        const step = s.points.length > 200 ? 3 : 1;
-        for (let i = 0; i < s.points.length; i += step) {
-          if (Math.hypot(s.points[i].x - p.x, s.points[i].y - p.y) <= tol + (s.width || 4) / 2) return true;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const pt of s.points) {
+          if (pt.x < minX) minX = pt.x;
+          if (pt.y < minY) minY = pt.y;
+          if (pt.x > maxX) maxX = pt.x;
+          if (pt.y > maxY) maxY = pt.y;
         }
-        return false;
+        const w2 = (s.width || 4) / 2 + 2;
+        return { x: minX - w2, y: minY - w2, w: maxX - minX + w2 * 2, h: maxY - minY + w2 * 2 };
       }
+      if (s.type === 'text') {
+        this.ctx.save();
+        this.ctx.font = `600 ${s.fontSize}px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+        const lines = String(s.text || '').split('\n');
+        let w = 0;
+        for (const l of lines) w = Math.max(w, this.ctx.measureText(l).width);
+        this.ctx.restore();
+        return { x: s.x, y: s.y, w: Math.max(24, w), h: lines.length * s.fontSize * 1.25 };
+      }
+      if (s.type === 'number') return { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
       const x = Math.min(s.x, s.x + (s.w || 0));
       const y = Math.min(s.y, s.y + (s.h || 0));
-      const w = Math.abs(s.w || (s.r ? s.r * 2 : 0));
-      const h = Math.abs(s.h || (s.r ? s.r * 2 : 0));
-      const pad = s.type === 'number' || s.type === 'text' ? 0 : tol;
-      return p.x >= x - pad && p.x <= x + w + pad && p.y >= y - pad && p.y <= y + h + pad;
+      return { x, y, w: Math.abs(s.w || 0), h: Math.abs(s.h || 0) };
+    }
+
+    _hitIndex(p) {
+      const tol = Math.max(8, this.strokeWidth * 1.5);
+      for (let i = this.shapes.length - 1; i >= 0; i--) {
+        if (this._hit(this.shapes[i], p, tol)) return i;
+      }
+      return -1;
+    }
+
+    _handleRadius() {
+      return Math.max(7, Math.round(this.canvas.width / 150));
+    }
+
+    _hitHandle(p) {
+      const s = this.shapes[this.selected];
+      if (!s) return null;
+      const r = this._handleRadius() * 1.8;
+      if (s.type === 'line' || s.type === 'arrow') {
+        if (Math.hypot(s.points[0].x - p.x, s.points[0].y - p.y) <= r) return 'a';
+        if (Math.hypot(s.points[1].x - p.x, s.points[1].y - p.y) <= r) return 'b';
+        return null;
+      }
+      const bb = this._bbox(s);
+      if ((s.type === 'rect' || s.type === 'ellipse' || s.type === 'pixel' || s.type === 'blur')
+        && Math.hypot(bb.x + bb.w - p.x, bb.y + bb.h - p.y) <= r) return 'resize';
+      return null;
+    }
+
+    _selectPointerDown(e, p) {
+      // 1) Griffe des selektierten Objekts (Endpunkte/Ecke)?
+      if (this.selected != null) {
+        const mode = this._hitHandle(p);
+        if (mode) {
+          this.dragMode = mode;
+          this.dragStart = p;
+          this.dragMoved = false;
+          this._setPointerCapture(e);
+          return;
+        }
+      }
+      // 2) Objekt unter dem Klick auswaehlen + verschiebbare machen
+      const idx = this._hitIndex(p);
+      if (idx >= 0) {
+        this.selected = idx;
+        this.dragMode = 'move';
+        this.dragStart = p;
+        this.dragMoved = false;
+        this._setPointerCapture(e);
+        this.render();
+        return;
+      }
+      // 3) Ins Leere geklickt -> abwaehlen
+      this.selected = null;
+      this.dragMode = null;
+      this.render();
+    }
+
+    _selectDrag(p) {
+      const s = this.shapes[this.selected];
+      if (!s) { this.dragMode = null; return; }
+      const dx = p.x - this.dragStart.x;
+      const dy = p.y - this.dragStart.y;
+      if (this.dragMode === 'move') {
+        if (dx || dy) this.dragMoved = true;
+        if (s.points) s.points = s.points.map((pt) => ({ x: pt.x + dx, y: pt.y + dy }));
+        else { s.x += dx; s.y += dy; }
+        this.dragStart = p;
+      } else if (this.dragMode === 'a') {
+        s.points[0] = { x: p.x, y: p.y };
+        this.dragMoved = true;
+      } else if (this.dragMode === 'b') {
+        s.points[1] = { x: p.x, y: p.y };
+        this.dragMoved = true;
+      } else if (this.dragMode === 'resize') {
+        if (dx || dy) this.dragMoved = true;
+        s.w = Math.max(6, p.x - s.x);
+        s.h = Math.max(6, p.y - s.y);
+      }
+      this.render();
+    }
+
+    _drawSelection(s) {
+      const ctx = this.ctx;
+      const bb = this._bbox(s);
+      const r = this._handleRadius();
+      const scale = Math.max(1, this.canvas.width / 1000);
+      ctx.save();
+      ctx.setLineDash([7 * scale, 5 * scale]);
+      ctx.strokeStyle = '#1f3a5f';
+      ctx.lineWidth = Math.max(1.5, 1.5 * scale);
+      ctx.strokeRect(bb.x - 5 * scale, bb.y - 5 * scale, bb.w + 10 * scale, bb.h + 10 * scale);
+      ctx.setLineDash([]);
+      // Griffe
+      const handles = [];
+      if (s.type === 'line' || s.type === 'arrow') {
+        handles.push({ x: s.points[0].x, y: s.points[0].y }, { x: s.points[1].x, y: s.points[1].y });
+      } else if (s.type === 'rect' || s.type === 'ellipse' || s.type === 'pixel' || s.type === 'blur') {
+        handles.push({ x: bb.x + bb.w, y: bb.y + bb.h });
+      }
+      for (const hpt of handles) {
+        ctx.beginPath();
+        ctx.arc(hpt.x, hpt.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#1f3a5f';
+        ctx.lineWidth = Math.max(2, 2 * scale);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    deleteSelected() {
+      if (this.selected == null || !this.shapes[this.selected]) return;
+      this.shapes.splice(this.selected, 1);
+      this.selected = null;
+      this._renumber();
+      this.commit();
     }
 
     /* ---------- Text-Tool ---------- */
-    _openTextEdit(p) {
+    _openTextEdit(p, existing) {
       this._closeTextEdit(false);
       const rect = this.canvas.getBoundingClientRect();
       const scale = rect.width / this.canvas.width;
@@ -384,7 +557,8 @@
       ta.placeholder = 'Text … (Strg+Enter = fertig, Esc = abbrechen)';
       document.body.appendChild(ta);
       ta.focus();
-      const t = { x: p.x, y: p.y, value: '', el: ta };
+      const t = { x: p.x, y: p.y, value: existing ? String(existing.text || '') : '', el: ta, editIndex: existing ? this.shapes.indexOf(existing) : null };
+      ta.value = t.value;
       this.textEdit = t;
       ta.addEventListener('input', () => { t.value = ta.value; this.render(); });
       ta.addEventListener('keydown', (e) => {
@@ -400,8 +574,13 @@
       const value = t.value.trim();
       t.el.remove();
       if (commit && value) {
-        this.shapes.push({ type: 'text', x: t.x, y: t.y, text: value, color: this.color, fontSize: this.fontSize });
-        this.commit();
+        if (t.editIndex != null && this.shapes[t.editIndex]) {
+          this.shapes[t.editIndex].text = value; // bestehenden Text ersetzen
+          this.commit();
+        } else {
+          this.shapes.push({ type: 'text', x: t.x, y: t.y, text: value, color: this.color, fontSize: this.fontSize });
+          this.commit();
+        }
       } else {
         this.render();
       }

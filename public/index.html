@@ -124,18 +124,10 @@
               <div class="row-btns">
                 <button class="btn small" id="undoBtn" type="button">↶ Zurück</button>
                 <button class="btn small" id="redoBtn" type="button">↷ Vor</button>
+                <button class="btn small hidden" id="deleteShapeBtn" type="button">Auswahl löschen</button>
               </div>
             </div>
-            <div class="tgroup">
-              <span class="label">KI-Hilfe (optional)</span>
-              <div class="row-btns column">
-                <button class="btn small ai ai-btn" id="aiAnalyzeBtn" type="button">Bild beschreiben</button>
-                <button class="btn small ai ai-btn" id="aiRedactBtn" type="button">Sensible Daten unkenntlich machen</button>
-                <button class="btn small ai ai-btn" id="aiAltBtn" type="button">Alt-Text kopieren</button>
-              </div>
-              <p class="ai-hint">Sendet das Bild an einen KI-Dienst. Ohne Klick passiert nichts.</p>
-              <p class="status err hidden" id="aiMissing" style="font-size:12px;margin:4px 0 0">KI ist auf diesem Server nicht konfiguriert — alles andere funktioniert trotzdem.</p>
-            </div>
+
             <div class="tgroup">
               <span class="label">Export</span>
               <div class="row-btns">
@@ -143,6 +135,7 @@
               </div>
               <span class="status ok" id="downloadNote" style="font-size:12px"></span>
             </div>
+
             <div class="tgroup">
               <button class="btn ghost small" id="backBtn" type="button">← Neue Aufnahme</button>
             </div>
@@ -153,15 +146,10 @@
               <canvas id="editorCanvas" width="1280" height="800"></canvas>
             </div>
             <div class="privacy-note">
-              Screenshots werden nur in deinem Browser bearbeitet — nichts wird hochgeladen oder gespeichert.
+              <strong>Ihr Bild verlässt diesen Browser nicht.</strong> Alles geschieht lokal auf Ihrem Gerät — nichts wird hochgeladen oder gespeichert.
               URL-Shots: Die Adresse wird einmalig serverseitig abgerufen, nicht gespeichert.
             </div>
             <div class="status" id="editorStatus"></div>
-            <div class="ai-panel" id="aiPanel">
-              <h3 id="aiTitle">KI-Analyse</h3>
-              <p class="ai-note" id="aiNote"></p>
-              <div id="aiBody"></div>
-            </div>
           </div>
         </div>
       </section>

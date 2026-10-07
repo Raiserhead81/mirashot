@@ -8,11 +8,9 @@
   const statusEl = $('#captureStatus');
   const editorSection = $('#editorSection');
   const captureSection = $('#captureSection');
-  const aiPanel = $('#aiPanel');
 
   let editor = null;
   let currentHost = 'mirashot';
-  let aiConfigured = null; // null = unbekannt
 
   /* ---------- Theme (Hell = Default, Dunkel optional) ---------- */
   function initTheme() {
@@ -239,7 +237,6 @@
   function showEditor() {
     captureSection.classList.add('hidden');
     editorSection.classList.remove('hidden');
-    aiPanel.classList.remove('show');
     editorSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   $('#backBtn').addEventListener('click', () => {
@@ -260,13 +257,15 @@
     number: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10 9.5a2 2 0 114 0c0 2-4 2.5-4 5h4.5"/><path d="M10 9.5v0"/></svg>',
     blur: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r="1.1" fill="currentColor" stroke="none"/><circle cx="16" cy="9.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10" cy="15.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg>',
     pixel: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="M8 9h3v3H8zM14 8h3v3h-3zM11 13h3v3h-3zM7 14h3v3H7zM15 14h2.5v2.5H15z" fill="currentColor" stroke="none"/></svg>',
+    select: '<svg viewBox="0 0 24 24"><path d="M6 3l12 8-6.5 1.5L14 19l-2.5 1L9 14l-3 4z"/></svg>',
     eraser: '<svg viewBox="0 0 24 24"><path d="M7 20h13"/><path d="M6 16l5 4H6l-3-3 9.5-9.5a2 2 0 012.8 0l3.2 3.2a2 2 0 010 2.8L13 19"/></svg>',
   };
   const TOOL_LABELS = {
     pen: 'Stift', arrow: 'Pfeil', line: 'Linie', rect: 'Rechteck', ellipse: 'Ellipse',
     text: 'Text', highlight: 'Textmarker', number: 'Nummer', blur: 'Unscharf', pixel: 'Unkenntlich', eraser: 'Radierer',
+    select: 'Bearbeiten',
   };
-  const CORE_TOOLS = ['pen', 'arrow', 'highlight', 'text', 'number', 'pixel'];
+  const CORE_TOOLS = ['select', 'pen', 'arrow', 'highlight', 'text', 'number', 'pixel'];
   const MORE_TOOLS = ['rect', 'ellipse', 'line', 'blur', 'eraser'];
 
   function makeToolButton(t) {
@@ -313,16 +312,29 @@
       b.addEventListener('click', () => {
         editor.color = c;
         $$('#swatches .swatch').forEach((x) => x.classList.toggle('active', x === b));
+        if (editor.tool === 'select' && editor.selected != null && editor.shapes[editor.selected]) {
+          editor.shapes[editor.selected].color = c;
+          editor.commit(); // Klick = diskret = ein Undo-Schritt
+        }
       });
       box.appendChild(b);
     });
   }
 
   function bindEditorControls() {
+    // Bei ausgewähltem Objekt (Bearbeiten-Modus) Farbe/Strichstärke live ändern
+    function applyToSelection(prop, value) {
+      if (editor.tool === 'select' && editor.selected != null && editor.shapes[editor.selected]) {
+        editor.shapes[editor.selected][prop] = value;
+        editor.render();
+      }
+    }
     $('#strokeSlider').addEventListener('input', (e) => {
       editor.strokeWidth = Number(e.target.value);
       $('#strokeVal').textContent = e.target.value;
+      applyToSelection('width', editor.strokeWidth);
     });
+    $('#strokeSlider').addEventListener('change', () => editor.commit());
     $('#fontSlider').addEventListener('input', (e) => {
       editor.fontSize = Number(e.target.value);
       $('#fontVal').textContent = e.target.value;
@@ -339,113 +351,14 @@
     });
     document.addEventListener('keydown', (e) => {
       if (!editorSection.classList.contains('hidden')) {
+        const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement && document.activeElement.tagName);
         if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); editor.undo(); }
         else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); editor.redo(); }
+        else if (!typing && (e.key === 'Delete' || e.key === 'Backspace') && editor.selected != null) { e.preventDefault(); editor.deleteSelected(); }
+        else if (!typing && e.key === 'Escape') { editor.selected = null; editor.render(); }
       }
     });
-  }
-
-  /* ---------- KI ---------- */
-  async function refreshAiStatus() {
-    try {
-      const r = await fetch('/api/ai/status');
-      const j = await r.json();
-      aiConfigured = !!j.configured;
-    } catch {
-      aiConfigured = false;
-    }
-    $$('.ai-btn').forEach((b) => { b.disabled = !aiConfigured; });
-    $('#aiMissing').classList.toggle('hidden', aiConfigured);
-  }
-
-  function openAiPanel(title, note) {
-    aiPanel.classList.add('show');
-    $('#aiTitle').textContent = title;
-    $('#aiNote').textContent = note || 'Hinweis: Das Bild wird zur Analyse an einen KI-Dienst gesendet.';
-  }
-
-  async function postAi(path, button) {
-    if (!aiConfigured) { setStatus('KI nicht konfiguriert.', 'err'); return null; }
-    const dataUrl = editor.getBaseDataUrl(1600);
-    if (!dataUrl) { setStatus('Kein Bild vorhanden.', 'err'); return null; }
-    const old = button.textContent;
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner"></span>läuft …';
-    try {
-      const res = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: dataUrl }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j.ok) {
-        setStatus(j.error || `KI-Fehler (HTTP ${res.status})`, 'err');
-        return null;
-      }
-      return j;
-    } catch (err) {
-      setStatus('KI-Fehler: ' + err.message, 'err');
-      return null;
-    } finally {
-      button.disabled = false;
-      button.textContent = old;
-    }
-  }
-
-  function bindAiButtons() {
-    $('#aiAnalyzeBtn').addEventListener('click', async (e) => {
-      openAiPanel('KI-Analyse', 'Hinweis: Das Bild wird zur Analyse an einen KI-Dienst gesendet. Es wird nicht gespeichert.');
-      $('#aiBody').innerHTML = '<p style="color:var(--muted);font-size:13.5px">Analysiere Bild …</p>';
-      const j = await postAi('/api/ai/analyze', e.currentTarget);
-      if (!j) return;
-      const out = $('#aiBody');
-      out.innerHTML = '';
-      const p = document.createElement('pre');
-      p.textContent = j.description || '(keine Beschreibung)';
-      out.appendChild(p);
-      if (j.observations && j.observations.length) {
-        const ul = document.createElement('ul');
-        j.observations.forEach((o) => {
-          const li = document.createElement('li');
-          li.textContent = o;
-          ul.appendChild(li);
-        });
-        out.appendChild(ul);
-      }
-      const cp = document.createElement('button');
-      cp.className = 'btn small';
-      cp.textContent = 'Kopieren';
-      cp.addEventListener('click', async () => {
-        const text = [j.description, '', ...j.observations].filter(Boolean).join('\n');
-        try { await navigator.clipboard.writeText(text); cp.textContent = 'Kopiert ✓'; }
-        catch { cp.textContent = 'Kopieren blockiert'; }
-        setTimeout(() => { cp.textContent = 'Kopieren'; }, 1600);
-      });
-      out.appendChild(cp);
-    });
-
-    $('#aiRedactBtn').addEventListener('click', async (e) => {
-      setStatus('Suche sensible Daten …', 'info');
-      const j = await postAi('/api/ai/redact', e.currentTarget);
-      if (!j) return;
-      if (!j.boxes || !j.boxes.length) {
-        setStatus('Keine offensichtlich sensiblen Daten gefunden.', 'ok');
-        return;
-      }
-      editor.addPixelBoxes(j.boxes);
-      setStatus(`${j.boxes.length} Stelle(n) gepixelt — bitte prüfen und bei Bedarf nachbessern.`, 'ok');
-    });
-
-    $('#aiAltBtn').addEventListener('click', async (e) => {
-      const j = await postAi('/api/ai/alt', e.currentTarget);
-      if (!j) return;
-      try {
-        await navigator.clipboard.writeText(j.alt);
-        setStatus('Alt-Text kopiert: „' + j.alt + '“', 'ok');
-      } catch {
-        setStatus('Alt-Text (bitte manuell kopieren): „' + j.alt + '“', 'ok');
-      }
-    });
+    $('#deleteShapeBtn').addEventListener('click', () => editor.deleteSelected());
   }
 
   /* ---------- Start ---------- */
@@ -454,17 +367,17 @@
       onChange: () => {
         $('#undoBtn').disabled = !editor.canUndo();
         $('#redoBtn').disabled = !editor.canRedo();
+        $('#deleteShapeBtn').classList.toggle('hidden', editor.selected == null);
       },
     });
+    window.__mirashotEditor = editor; // E2E-Test-Zugriff (nur lesend genutzt)
     buildToolGrid();
     buildSwatches();
     bindEditorControls();
-    bindAiButtons();
     bindUploadFallback();
     initScreenTab();
     initTheme();
     initPickerHelp();
-    refreshAiStatus();
     editor.render();
   }
 
