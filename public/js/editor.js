@@ -18,7 +18,7 @@
       this.histIndex = 0;
       this.tool = 'pen';
       this.color = '#ef4444';
-      this.strokeWidth = 6;
+      this.strokeWidth = 8;
       this.fontSize = 34;
       this.numberNext = 1;
       this.drawing = null; // Shape in Arbeit

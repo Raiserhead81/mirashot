@@ -44,6 +44,7 @@ function check(name, ok, detail) {
   for (let i = 0; i <= 20; i++) await page.mouse.move(box.x + box.width * 0.2 + i * (box.width * 0.6 / 20), box.y + box.height * 0.3 + Math.sin(i / 3) * 25);
   await page.mouse.up();
 
+  await page.click('#moreToggle');
   await page.click('.tool[data-tool="rect"]');
   box = await canvasBox();
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.35);
@@ -63,7 +64,7 @@ function check(name, ok, detail) {
 
   /* ---------- 3) Download über "Fertig" ---------- */
   const downloadPromise = page.waitForEvent('download', { timeout: 20000 });
-  await page.click('#doneBtn');
+  await page.click('#downloadBtn');
   const download = await downloadPromise;
   const fname = download.suggestedFilename();
   check('Download über "Fertig"', /^mirashot-example\.com-\d{4}-\d{2}-\d{2}-\d{4}\.png$/.test(fname), fname);

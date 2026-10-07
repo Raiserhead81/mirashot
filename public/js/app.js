@@ -264,29 +264,43 @@
   };
   const TOOL_LABELS = {
     pen: 'Stift', arrow: 'Pfeil', line: 'Linie', rect: 'Rechteck', ellipse: 'Ellipse',
-    text: 'Text', highlight: 'Marker', number: 'Schritt', blur: 'Unscharf', pixel: 'Pixel', eraser: 'Radierer',
+    text: 'Text', highlight: 'Textmarker', number: 'Nummer', blur: 'Unscharf', pixel: 'Unkenntlich', eraser: 'Radierer',
   };
+  const CORE_TOOLS = ['pen', 'arrow', 'highlight', 'text', 'number', 'pixel'];
+  const MORE_TOOLS = ['rect', 'ellipse', 'line', 'blur', 'eraser'];
+
+  function makeToolButton(t) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tool' + (t === 'pen' ? ' active' : '');
+    b.dataset.tool = t;
+    b.innerHTML = (TOOL_ICONS[t] || '') + `<span>${TOOL_LABELS[t] || t}</span>`;
+    b.title = TOOL_LABELS[t] || t;
+    b.addEventListener('click', () => {
+      editor.tool = t;
+      $$('#toolGrid .tool, #toolGridMore .tool').forEach((x) => x.classList.toggle('active', x === b));
+      $('#fontRow').classList.toggle('hidden', t !== 'text');
+      $('#editorCanvas').style.cursor = t === 'text' ? 'text' : t === 'eraser' ? 'not-allowed' : 'crosshair';
+    });
+    return b;
+  }
 
   function buildToolGrid() {
     const grid = $('#toolGrid');
-    window.MirashotEditor.TOOLS.forEach((t) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tool' + (t === 'pen' ? ' active' : '');
-      b.dataset.tool = t;
-      b.innerHTML = (TOOL_ICONS[t] || '') + `<span>${TOOL_LABELS[t] || t}</span>`;
-      b.title = TOOL_LABELS[t] || t;
-      b.addEventListener('click', () => {
-        editor.tool = t;
-        $$('#toolGrid .tool').forEach((x) => x.classList.toggle('active', x === b));
-        $('#fontRow').classList.toggle('hidden', t !== 'text');
-        $('#editorCanvas').style.cursor = t === 'text' ? 'text' : t === 'eraser' ? 'not-allowed' : 'crosshair';
-      });
-      grid.appendChild(b);
+    const more = $('#toolGridMore');
+    CORE_TOOLS.forEach((t) => grid.appendChild(makeToolButton(t)));
+    MORE_TOOLS.forEach((t) => more.appendChild(makeToolButton(t)));
+    const toggle = $('#moreToggle');
+    toggle.addEventListener('click', () => {
+      const open = !more.classList.contains('hidden');
+      more.classList.toggle('hidden', open);
+      $('#clearBtn').classList.toggle('hidden', open);
+      toggle.setAttribute('aria-expanded', String(!open));
+      toggle.textContent = open ? 'Mehr Werkzeuge ▾' : 'Weniger Werkzeuge ▴';
     });
   }
 
-  const COLORS = ['#ef4444', '#22c55e', '#3b82f6', '#facc15', '#f97316', '#ffffff', '#0b0f1a'];
+  const COLORS = ['#d92d20', '#1f3a5f', '#111111', '#eab308']; // Rot, Blau, Schwarz, Gelb (Textmarker)
   function buildSwatches() {
     const box = $('#swatches');
     COLORS.forEach((c, i) => {
@@ -318,14 +332,10 @@
     $('#clearBtn').addEventListener('click', () => {
       if (confirm('Alle Annotationen löschen?')) editor.clearAll();
     });
-    $('#doneBtn').addEventListener('click', async () => {
-      const name = await editor.download();
-      $('#downloadNote').textContent = `Gespeichert als ${name}`;
-      setStatus('Fertig — PNG wurde heruntergeladen (nur von deinem Browser erzeugt).', 'ok');
-    });
     $('#downloadBtn').addEventListener('click', async () => {
       const name = await editor.download();
       $('#downloadNote').textContent = `Gespeichert als ${name}`;
+      setStatus('PNG wurde heruntergeladen — nur von deinem Browser erzeugt.', 'ok');
     });
     document.addEventListener('keydown', (e) => {
       if (!editorSection.classList.contains('hidden')) {

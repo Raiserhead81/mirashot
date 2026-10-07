@@ -13,34 +13,15 @@
   <div class="wrap">
     <header class="site">
       <div class="logo">
-        <svg viewBox="0 0 96 96" width="46" height="46" role="img" aria-label="MIRASHOT Logo" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="hd-orb" cx="34%" cy="28%" r="85%">
-              <stop offset="0%" stop-color="#4a6d99"/>
-              <stop offset="55%" stop-color="#2d5480"/>
-              <stop offset="100%" stop-color="#1f3a5f"/>
-            </radialGradient>
-            <linearGradient id="hd-iris" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#8fb0d4"/>
-              <stop offset="100%" stop-color="#3f6ba1"/>
-            </linearGradient>
-            </defs>
-          <circle cx="48" cy="48" r="32" fill="url(#hd-orb)"/>
-          <circle cx="48" cy="48" r="32" fill="none" stroke="#16283f" stroke-width="1.4"/>
-          <ellipse cx="37" cy="33" rx="11" ry="6.5" fill="#ffffff" opacity="0.18" transform="rotate(-24 37 33)"/>
-          <circle cx="48" cy="48" r="16" fill="#101b2b"/>
-          <circle cx="48" cy="48" r="16" fill="none" stroke="url(#hd-iris)" stroke-width="2" opacity="0.9"/>
-          <g stroke="#8fb0d4" stroke-width="1.6" stroke-linecap="round" opacity="0.9">
-            <line x1="48" y1="34.5" x2="44.2" y2="44.6"/>
-            <line x1="60.1" y1="42.2" x2="50.9" y2="47.4"/>
-            <line x1="55.6" y1="57.8" x2="50.1" y2="49.2"/>
-            <line x1="40.4" y1="57.8" x2="45.9" y2="49.2"/>
-            <line x1="35.9" y1="42.2" x2="45.1" y2="47.4"/>
-            <line x1="52.6" y1="35.6" x2="48.4" y2="45.4"/>
+        <svg viewBox="0 0 96 96" width="46" height="46" role="img" aria-label="MIRASHOT Zeichen" xmlns="http://www.w3.org/2000/svg" class="logo-mark">
+          <g stroke="currentColor" stroke-width="6" stroke-linecap="round" fill="none">
+            <path d="M14 30 L14 14 L30 14"/>
+            <path d="M66 14 L82 14 L82 30"/>
+            <path d="M82 66 L82 82 L66 82"/>
+            <path d="M30 82 L14 82 L14 66"/>
           </g>
-          <circle cx="48" cy="48" r="5.4" fill="url(#hd-iris)"/>
-          <circle cx="48" cy="48" r="2.1" fill="#0b0f1a"/>
-          <path d="M74 8 L61 30 L69.5 30 L57 54 L81 26 L72 26 Z" fill="#b98a2f" stroke="#f2e3bd" stroke-width="1.2" stroke-linejoin="round" opacity="0.95"/>
+          <circle cx="48" cy="48" r="20" fill="none" stroke="currentColor" stroke-width="4"/>
+          <circle cx="48" cy="48" r="8" fill="var(--logo-dot, #8fb0d4)"/>
         </svg>
         <div class="brand">
           <span class="name">MIRASHOT</span>
@@ -54,6 +35,13 @@
     </header>
 
     <main>
+      <!-- ================= Ablauf in 3 Schritten ================= -->
+      <ol class="steps" aria-label="Ablauf">
+        <li><span class="step-num">1</span> Adresse eingeben</li>
+        <li><span class="step-num">2</span> Bild prüfen und beschriften</li>
+        <li><span class="step-num">3</span> Herunterladen</li>
+      </ol>
+
       <!-- ================= Aufnahme ================= -->
       <section id="captureSection">
         <div class="tabs" role="tablist">
@@ -63,14 +51,14 @@
 
         <div class="panel" id="urlPanel">
           <h2>Webseite ablichten</h2>
-          <p class="desc">Gib eine Adresse ein — der Server ruft sie einmalig per Headless-Browser ab und liefert dir ein PNG. Die Adresse wird nicht gespeichert und nicht geloggt.</p>
+          <p class="desc">Adresse eingeben, PNG erhalten. Die Adresse wird einmalig abgerufen und nirgends gespeichert.</p>
           <form id="shotForm" class="url-row">
             <input type="url" id="urlInput" placeholder="https://example.com" required autocomplete="off" spellcheck="false" inputmode="url">
             <button class="btn primary" type="submit" id="shotBtn">Screenshot erstellen</button>
           </form>
           <div class="checks">
-            <label><input type="checkbox" id="fullPage"> Ganze Seite (vollständiges Scrollen)</label>
-            <label>Viewport
+            <label><input type="checkbox" id="fullPage"> Ganze Seite</label>
+            <label>Bildgröße
               <input type="number" id="vpW" value="1280" min="320" max="3840" step="10"> ×
               <input type="number" id="vpH" value="800" min="320" max="3840" step="10"> px
             </label>
@@ -80,7 +68,7 @@
 
         <div class="panel hidden" id="screenPanel">
           <h2>Bildschirm ablichten</h2>
-          <p class="desc">Nimm einen Tab, ein Fenster oder den ganzen Bildschirm auf. Das passiert <strong>vollständig in deinem Browser</strong> — es fließt nichts über den Server. Danach landet das Bild direkt im Editor.</p>
+          <p class="desc">Tab, Fenster oder ganzen Bildschirm aufnehmen — läuft komplett in deinem Browser. Nichts wird übertragen. Das Bild landet direkt im Editor.</p>
           <button class="btn primary" id="screenBtn" type="button">Bildschirmaufnahme starten</button>
           <p class="status err hidden" id="screenHint"></p>
           <div class="status" id="screenStatus"></div>
@@ -107,8 +95,11 @@
         <div class="editor-layout">
           <aside class="toolbar" aria-label="Werkzeuge">
             <div class="tgroup">
-              <span class="label">Werkzeug</span>
+              <span class="label">Werkzeuge</span>
               <div class="tool-grid" id="toolGrid"></div>
+              <button class="more-toggle" id="moreToggle" type="button" aria-expanded="false">Mehr Werkzeuge ▾</button>
+              <div class="tool-grid hidden" id="toolGridMore"></div>
+              <button class="btn small hidden" id="clearBtn" type="button">Alles löschen</button>
             </div>
             <div class="tgroup">
               <span class="label">Farbe</span>
@@ -117,8 +108,8 @@
             <div class="tgroup">
               <span class="label">Strichstärke</span>
               <div class="slider-row">
-                <input type="range" id="strokeSlider" min="1" max="40" value="6">
-                <span class="val" id="strokeVal">6</span>
+                <input type="range" id="strokeSlider" min="1" max="40" value="8">
+                <span class="val" id="strokeVal">8</span>
               </div>
             </div>
             <div class="tgroup hidden" id="fontRow">
@@ -131,25 +122,24 @@
             <div class="tgroup">
               <span class="label">Bearbeiten</span>
               <div class="row-btns">
-                <button class="btn small" id="undoBtn" type="button">↶ Undo</button>
-                <button class="btn small" id="redoBtn" type="button">↷ Redo</button>
-                <button class="btn small" id="clearBtn" type="button">Alles löschen</button>
+                <button class="btn small" id="undoBtn" type="button">↶ Zurück</button>
+                <button class="btn small" id="redoBtn" type="button">↷ Vor</button>
               </div>
             </div>
             <div class="tgroup">
-              <span class="label">KI (nur auf Klick)</span>
+              <span class="label">KI-Hilfe (optional)</span>
               <div class="row-btns column">
-                <button class="btn small ai ai-btn" id="aiAnalyzeBtn" type="button">✦ KI-Analyse</button>
-                <button class="btn small ai ai-btn" id="aiRedactBtn" type="button">✦ Sensible Daten pixeln</button>
-                <button class="btn small ai ai-btn" id="aiAltBtn" type="button">✦ Alt-Text kopieren</button>
+                <button class="btn small ai ai-btn" id="aiAnalyzeBtn" type="button">Bild beschreiben</button>
+                <button class="btn small ai ai-btn" id="aiRedactBtn" type="button">Sensible Daten unkenntlich machen</button>
+                <button class="btn small ai ai-btn" id="aiAltBtn" type="button">Alt-Text kopieren</button>
               </div>
-              <p class="status err hidden" id="aiMissing" style="font-size:12px;margin:4px 0 0">KI ist auf diesem Server nicht konfiguriert — Annotationen funktionieren trotzdem vollständig.</p>
+              <p class="ai-hint">Sendet das Bild an einen KI-Dienst. Ohne Klick passiert nichts.</p>
+              <p class="status err hidden" id="aiMissing" style="font-size:12px;margin:4px 0 0">KI ist auf diesem Server nicht konfiguriert — alles andere funktioniert trotzdem.</p>
             </div>
             <div class="tgroup">
               <span class="label">Export</span>
               <div class="row-btns">
-                <button class="btn primary" id="doneBtn" type="button">Fertig</button>
-                <button class="btn" id="downloadBtn" type="button">Download</button>
+                <button class="btn primary" id="downloadBtn" type="button">⭳ Herunterladen</button>
               </div>
               <span class="status ok" id="downloadNote" style="font-size:12px"></span>
             </div>
