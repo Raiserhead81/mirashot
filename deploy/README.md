@@ -21,18 +21,11 @@ ln -sf /etc/nginx/sites-available/mirashot.gemivo.de.conf /etc/nginx/sites-enabl
 nginx -t && systemctl reload nginx
 ```
 
-## TLS-Hinweis (Stand 2026-10-07)
+## TLS (Stand 2026-10-07)
 
-Auf dem Server existiert KEIN Wildcard-Zertifikat — jede Subdomain hat ein eigenes
-LE-Zertifikat (`sauf.gemivo.de`, `ainews.gemivo.de`, …). Die vHost-Config referenziert
-übergangsweise `gemivo-tenants` (SAN-Mismatch für mirashot). Sobald ein Zertifikat
-freigegeben ist, genügt:
-
-```bash
-certbot certonly --webroot -w /var/www/html -d mirashot.gemivo.de
-# dann in deploy/nginx-mirashot.gemivo.de.conf die Pfade auf
-# /etc/letsencrypt/live/mirashot.gemivo.de/fullchain.pem umstellen, nginx -t && reload
-```
+Zertifikat `mirashot.gemivo.de` (LE, webroot-01, gültig bis 2027-01-05, Auto-Renew aktiv)
+ist in der vHost-Config referenziert; Verlängerung läuft über den vorhandenen
+Certbot-Renew (webroot `/var/www/html` ist im vHost berücksichtigt).`
 
 ## Datenschutz-Entscheidungen im vHost
 
