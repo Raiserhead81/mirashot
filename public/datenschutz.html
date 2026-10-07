@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Datenschutz — MIRASHOT</title>
+  <meta name="description" content="Datenschutzerklärung von MIRASHOT: keine Cookies, kein Tracking, keine Speicherung von Screenshots oder URLs.">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="wrap doc">
+    <header class="site">
+      <div class="logo">
+        <svg viewBox="0 0 96 96" width="40" height="40" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MIRASHOT">
+          <defs>
+            <radialGradient id="ds-orb" cx="35%" cy="30%" r="80%">
+              <stop offset="0%" stop-color="#c4b5fd"/>
+              <stop offset="45%" stop-color="#8b5cf6"/>
+              <stop offset="100%" stop-color="#0ea5e9"/>
+            </radialGradient>
+          </defs>
+          <circle cx="48" cy="48" r="32" fill="url(#ds-orb)"/>
+          <circle cx="48" cy="48" r="16" fill="#0b0f1a"/>
+          <circle cx="48" cy="48" r="16" fill="none" stroke="#22d3ee" stroke-width="2"/>
+          <circle cx="48" cy="48" r="5.4" fill="#22d3ee"/>
+          <path d="M74 8 L61 30 L69.5 30 L57 54 L81 26 L72 26 Z" fill="#fbbf24"/>
+        </svg>
+        <div class="brand"><span class="name">MIRASHOT</span></div>
+      </div>
+      <div class="header-right"><a class="btn small" href="/">← Zur App</a></div>
+    </header>
+
+    <main>
+      <h1>Datenschutz</h1>
+      <p><strong>Kurzfassung:</strong> MIRASHOT speichert nichts, trackt niemanden und setzt keine Cookies. Deine Screenshots entstehen und werden bearbeitet, wo sie hingehören: in deinem Browser.</p>
+
+      <h2>Grundsatz: keine Speicherung, kein Tracking</h2>
+      <ul>
+        <li><strong>Keine Cookies,</strong> kein LocalStorage mit Nutzerinhalten, keine Sessions, keine Nutzerkonten.</li>
+        <li><strong>Kein Tracking,</strong> keine Analytics, keine Werbe-Netzwerke.</li>
+        <li><strong>Keine externen Ressourcen:</strong> Diese Seite lädt keine Schriftarten, Skripte oder Bilder von Dritt-Anbietern — der Browser sendet dadurch keine Anfragen an Dritte.</li>
+        <li><strong>Keine Persistenz:</strong> Screenshots werden niemals auf dem Server gespeichert. Nach dem Streaming an deinen Browser sind sie verworfen. Ein Neustart des Servers löscht zwangsläufig alles, was es ohnehin nie gab.</li>
+      </ul>
+
+      <h2>Tab „Webseite ablichten“</h2>
+      <p>Wenn du eine Adresse abschickst, ruft der Server sie einmalig mit einem Headless-Browser (Chromium) ab und streamt das PNG direkt an dich zurück.</p>
+      <ul>
+        <li>Die angefragte Adresse wird <strong>nicht gespeichert und nicht in Logs geschrieben</strong> (der Access-Log des Webservers zeichnet nur den Pfad <code>/api/shot</code> ohne Abfrage-Parameter auf).</li>
+        <li>Zur Missbrauchs-Abwehr (SSRF) wird die Ziel-Adresse technisch geprüft: Nur öffentlich routbare http/https-Ziele sind erlaubt; Zugriffe auf interne Netze werden abgelehnt.</li>
+        <li>Von der besuchten Zielseite gehen keine Cookies oder Logins des Betreibers ab — der Abruf erfolgt mit einem leeren, neu erzeugten Browser-Profil.</li>
+      </ul>
+
+      <h2>Tab „Bildschirm“</h2>
+      <p>Die Bildschirmaufnahme läuft <strong>vollständig in deinem Browser</strong> (getDisplayMedia). Es werden keinerlei Daten an den Server übertragen. Der Server erfährt nicht einmal, dass du diesen Tab benutzt.</p>
+
+      <h2>Annotation-Editor</h2>
+      <p>Alle Bearbeitungsschritte (Zeichnen, Texte, Unschärfe, Pixelation, Undo/Redo, Download) geschehen lokal im Browser. Es existiert kein Upload-Pfad für deine Bilder — außer der ausdrücklichen KI-Nutzung (nächster Abschnitt).</p>
+
+      <h2>KI-Features (nur auf Klick)</h2>
+      <div class="hint">
+        <p style="margin:0">Wenn du eine KI-Funktion nutzt („KI-Analyse“, „Sensible Daten pixeln“, „Alt-Text kopieren“), <strong>wird das Bild zur Analyse an einen externen KI-Dienst gesendet.</strong> Das geschieht ausschließlich auf deinen ausdrücklichen Klick, einmalig pro Klick und ohne Speicherung auf MIRASHOT-Seite.</p>
+      </div>
+      <ul>
+        <li>Übertragen wird eine reduzierte Kopie des Bildes (max. 1600 px Kante, PNG) an den im Betrieb konfigurierten KI-Endpoint (OpenAI-kompatible Schnittstelle, z.B. OpenRouter oder Z.ai).</li>
+        <li>Die weitere Verarbeitung dort richtet sich nach der Datenschutzerklärung des jeweiligen Anbieters. Der Serverbetreiber kann diese Zusicherung für den Drittdienst nicht beeinflussen.</li>
+        <li>Wer keine KI nutzen will, lässt die entsprechend gekennzeichneten Buttons einfach unberührt — alle übrigen Funktionen arbeiten dann garantiert ohne jede Übertragung.</li>
+        <li>Ist kein KI-Dienst konfiguriert, zeigen die KI-Buttons einen entsprechenden Hinweis und es wird nichts gesendet.</li>
+      </ul>
+
+      <h2>Server-Logs</h2>
+      <p>Der Webserver führt ein technisches Zugriffs-Protokoll (Pfad, Statuscode, Zeitpunkt, ohne Abfrage-Parameter und damit ohne deine eingegebene Adresse). Es dient ausschließlich der Fehlerdiagnose und dem Missbrauchsschutz und enthält keine Nutzerinhalte.</p>
+
+      <h2>Self-Hosting</h2>
+      <p>MIRASHOT ist freie Software (MIT) und kann selbst gehostet werden — dann gilt deine eigene Infrastruktur und Konfiguration, insbesondere für den KI-Endpoint. Siehe README im Repository.</p>
+
+      <h2 id="impressum">Impressum</h2>
+      <p>
+        Anbieter: <strong>[Platzhalter — Name]</strong><br>
+        Anschrift: <strong>[Platzhalter — Straße, PLZ Ort]</strong><br>
+        Kontakt: <strong>[Platzhalter — E-Mail]</strong><br>
+        Verantwortlich i.S.d. § 18 Abs. 2 MStV: <strong>[Platzhalter]</strong>
+      </p>
+      <p style="color:var(--muted);font-size:12.5px">Hinweis: Diese Platzhalter sind vom Betreiber vor dem produktiven Einsatz auszufüllen.</p>
+
+      <p style="margin-top:26px"><a href="/">← Zurück zur App</a></p>
+    </main>
+
+    <footer class="site">
+      <span>MIRASHOT — datenschutzkonforme Screenshots</span>
+    </footer>
+  </div>
+</body>
+</html>
