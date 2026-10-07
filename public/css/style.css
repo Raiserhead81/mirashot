@@ -67,7 +67,7 @@ textarea:focus-visible, [tabindex]:focus-visible {
   outline-offset: 2px;
 }
 
-.wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px 56px; }
+.wrap { max-width: 1500px; margin: 0 auto; padding: 0 24px 56px; }
 
 /* ---------- Header ---------- */
 header.site {
@@ -260,23 +260,45 @@ header.site {
 .editor-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) {
   .editor-layout { grid-template-columns: 1fr; }
-  .toolbar { position: static; }
+  .toolbar {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .tool-grid {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tool { flex: 0 0 auto; min-width: 76px; min-height: 48px; }
+  .style-row { flex: 1 1 auto; }
+  .row-btns { flex: 1 1 100%; }
+  .row-btns .btn, .stage-actions .btn { min-height: 44px; }
 }
 
 .toolbar {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
   box-shadow: var(--shadow);
 }
 @media (min-width: 901px) { .toolbar { position: sticky; top: 14px; } }
 
-.tgroup { display: flex; flex-direction: column; gap: 9px; }
-.tgroup .label { font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 650; }
+/* Farben + Strichstärke in einer schlanken Zeile */
+.style-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.style-row .slider-row { flex: 1 1 150px; min-width: 150px; }
+
+/* Aktionszeile über dem Canvas */
+.stage-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.stage-actions #downloadBtn { margin-left: auto; }
+.stage-actions .status { margin: 0; }
 .tool-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .tool {
   appearance: none;
@@ -481,23 +503,14 @@ footer.site a:hover { color: var(--accent); }
 .logo svg.logo-mark { color: var(--accent); }
 :root { --logo-dot: #8fb0d4; }
 
-/* ---------- Mehr Werkzeuge ---------- */
-.more-toggle {
-  appearance: none;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 4px 0;
-  text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.more-toggle:hover { color: var(--accent); }
-
 /* ---------- KI-Hilfe: dezente Sekundärgruppe ---------- */
 .btn.ai { border-color: var(--line); color: var(--text); background: var(--panel); font-weight: 500; }
 .btn.ai:hover { border-color: var(--accent); }
 .ai-hint { font-size: 12px; color: var(--muted); margin: 2px 0 0; line-height: 1.5; }
+
+/* ---------- Schmale Screens: Header ordentlich umbrechen ---------- */
+@media (max-width: 700px) {
+  header.site { flex-wrap: wrap; gap: 10px; }
+  .brand .tag { display: none; }
+  .header-right { margin-left: 0; width: 100%; justify-content: flex-start; }
+}

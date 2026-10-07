@@ -93,55 +93,33 @@
       <!-- ================= Editor ================= -->
       <section id="editorSection" class="hidden">
         <div class="editor-layout">
-          <aside class="toolbar" aria-label="Werkzeuge">
-            <div class="tgroup">
-              <span class="label">Werkzeuge</span>
-              <div class="tool-grid" id="toolGrid"></div>
-              <button class="more-toggle" id="moreToggle" type="button" aria-expanded="false">Mehr Werkzeuge ▾</button>
-              <div class="tool-grid hidden" id="toolGridMore"></div>
-              <button class="btn small hidden" id="clearBtn" type="button">Alles löschen</button>
-            </div>
-            <div class="tgroup">
-              <span class="label">Farbe</span>
+          <aside class="toolbar">
+            <div class="tool-grid" id="toolGrid"></div>
+            <div class="style-row">
               <div class="swatches" id="swatches"></div>
-            </div>
-            <div class="tgroup">
-              <span class="label">Strichstärke</span>
               <div class="slider-row">
                 <input type="range" id="strokeSlider" min="1" max="40" value="8">
                 <span class="val" id="strokeVal">8</span>
               </div>
-            </div>
-            <div class="tgroup hidden" id="fontRow">
-              <span class="label">Schriftgröße</span>
-              <div class="slider-row">
+              <div class="slider-row hidden" id="fontRow">
                 <input type="range" id="fontSlider" min="10" max="140" value="34">
                 <span class="val" id="fontVal">34</span>
               </div>
             </div>
-            <div class="tgroup">
-              <span class="label">Bearbeiten</span>
-              <div class="row-btns">
-                <button class="btn small" id="undoBtn" type="button">↶ Zurück</button>
-                <button class="btn small" id="redoBtn" type="button">↷ Vor</button>
-                <button class="btn small hidden" id="deleteShapeBtn" type="button">Auswahl löschen</button>
-              </div>
-            </div>
-
-            <div class="tgroup">
-              <span class="label">Export</span>
-              <div class="row-btns">
-                <button class="btn primary" id="downloadBtn" type="button">↓ Herunterladen</button>
-              </div>
-              <span class="status ok" id="downloadNote" style="font-size:12px"></span>
-            </div>
-
-            <div class="tgroup">
-              <button class="btn ghost small" id="backBtn" type="button">← Neue Aufnahme</button>
+            <div class="row-btns">
+              <button class="btn small" id="undoBtn" type="button">↶ Zurück</button>
+              <button class="btn small" id="redoBtn" type="button">↷ Vor</button>
+              <button class="btn small" id="clearBtn" type="button">Alles löschen</button>
+              <button class="btn small hidden" id="deleteShapeBtn" type="button">Auswahl löschen</button>
             </div>
           </aside>
 
           <div class="stage">
+            <div class="stage-actions">
+              <button class="btn ghost small" id="backBtn" type="button">← Neue Aufnahme</button>
+              <span class="status ok" id="downloadNote" style="margin:0"></span>
+              <button class="btn primary small" id="downloadBtn" type="button">↓ Herunterladen</button>
+            </div>
             <div class="canvas-holder">
               <canvas id="editorCanvas" width="1280" height="800"></canvas>
             </div>

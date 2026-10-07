@@ -46,7 +46,6 @@ function check(name, ok, detail) {
   for (let i = 0; i <= 20; i++) await page.mouse.move(box.x + box.width * 0.2 + i * (box.width * 0.6 / 20), box.y + box.height * 0.3 + Math.sin(i / 3) * 25);
   await page.mouse.up();
 
-  await page.click('#moreToggle');
   await page.click('.tool[data-tool="rect"]');
   box = await canvasBox();
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.35);

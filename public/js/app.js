@@ -265,8 +265,8 @@
     text: 'Text', highlight: 'Textmarker', number: 'Nummer', blur: 'Unscharf', pixel: 'Unkenntlich', eraser: 'Radierer',
     select: 'Bearbeiten',
   };
-  const CORE_TOOLS = ['select', 'pen', 'arrow', 'highlight', 'text', 'number', 'pixel'];
-  const MORE_TOOLS = ['rect', 'ellipse', 'line', 'blur', 'eraser'];
+  // Reihenfolge: Zeile 1 = Bearbeiten/Stift/Pfeil/Textmarker/Text/Nummer, Zeile 2 = Unkenntlich/Rechteck/Ellipse/Linie/Unscharf/Radierer
+  const ALL_TOOLS = ['select', 'pen', 'arrow', 'highlight', 'text', 'number', 'pixel', 'rect', 'ellipse', 'line', 'blur', 'eraser'];
 
   function makeToolButton(t) {
     const b = document.createElement('button');
@@ -277,7 +277,7 @@
     b.title = TOOL_LABELS[t] || t;
     b.addEventListener('click', () => {
       editor.tool = t;
-      $$('#toolGrid .tool, #toolGridMore .tool').forEach((x) => x.classList.toggle('active', x === b));
+      $$('#toolGrid .tool').forEach((x) => x.classList.toggle('active', x === b));
       $('#fontRow').classList.toggle('hidden', t !== 'text');
       $('#editorCanvas').style.cursor = t === 'text' ? 'text' : t === 'eraser' ? 'not-allowed' : 'crosshair';
     });
@@ -286,17 +286,7 @@
 
   function buildToolGrid() {
     const grid = $('#toolGrid');
-    const more = $('#toolGridMore');
-    CORE_TOOLS.forEach((t) => grid.appendChild(makeToolButton(t)));
-    MORE_TOOLS.forEach((t) => more.appendChild(makeToolButton(t)));
-    const toggle = $('#moreToggle');
-    toggle.addEventListener('click', () => {
-      const open = !more.classList.contains('hidden');
-      more.classList.toggle('hidden', open);
-      $('#clearBtn').classList.toggle('hidden', open);
-      toggle.setAttribute('aria-expanded', String(!open));
-      toggle.textContent = open ? 'Mehr Werkzeuge ▾' : 'Weniger Werkzeuge ▴';
-    });
+    ALL_TOOLS.forEach((t) => grid.appendChild(makeToolButton(t)));
   }
 
   const COLORS = ['#d92d20', '#1f3a5f', '#111111', '#eab308']; // Rot, Blau, Schwarz, Gelb (Textmarker)
