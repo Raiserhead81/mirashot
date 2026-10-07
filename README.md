@@ -124,10 +124,20 @@ public/         Frontend (Editor, Tabs, Datenschutzseite) — vanilla JS, keine 
 
 MIT — siehe [LICENSE](LICENSE).
 
+## Design
+
+„Behörden-episch": Hell-Modus als Default (weiß/hellgrau, Anthrazit-Text, EIN dunkelblauer
+Akzent `#1f3a5f`), keine Gradients im UI (nur der Logo-Orb), klare Hierarchie, große
+Touch-Targets, Fokus-Ringe. Dunkle Variante per Header-Toggle (Auswahl wird lokal
+gespeichert, keine Nutzerinhalte). Vorschau: `docs/redesign-start.png`,
+`docs/redesign-editor.png`, `docs/redesign-start-dark.png`.
+
 ## Tests
 
 ```bash
 npx playwright install chromium
 npm run diag:screen          # Bildschirm-Tab + Fallbacks (Upload, Drag&Drop, Fehlermeldungen) — 10 Checks
+npm run test:e2e             # kompletter Klick-Durchlauf: Shot -> Editor -> Annotation -> Download, Drop-Fallback, Theme
 MIRA_URL=https://mirashot.gemivo.de/ npm run diag:screen   # gegen Live
+MIRA_URL=https://mirashot.gemivo.de/ MIRA_SHOTS=1 npm run test:e2e   # + Screenshots nach docs/
 ```

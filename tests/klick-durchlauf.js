@@ -34,23 +34,26 @@ function check(name, ok, detail) {
   check('Webseite-Shot landet im Editor (1280x800)', shotState.canvasW === 1280 && shotState.canvasH === 800, `canvas=${shotState.canvasW}x${shotState.canvasH}`);
 
   /* ---------- 2) Annotation: Stift + Rechteck + Schritt-Bubble ---------- */
-  const box = await page.locator('#editorCanvas').boundingBox();
-  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  // WICHTIG: Box nach JEDEM Klick neu messen (Klicks koennen die Seite scrollen)
+  const canvasBox = async () => page.locator('#editorCanvas').boundingBox();
 
   await page.click('.tool[data-tool="pen"]');
-  await page.mouse.move(cx - 200, cy - 80);
+  let box = await canvasBox();
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.3);
   await page.mouse.down();
-  for (let i = 0; i <= 20; i++) await page.mouse.move(cx - 200 + i * 20, cy - 80 + Math.sin(i / 3) * 25);
+  for (let i = 0; i <= 20; i++) await page.mouse.move(box.x + box.width * 0.2 + i * (box.width * 0.6 / 20), box.y + box.height * 0.3 + Math.sin(i / 3) * 25);
   await page.mouse.up();
 
   await page.click('.tool[data-tool="rect"]');
-  await page.mouse.move(cx - 120, cy - 60);
+  box = await canvasBox();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.35);
   await page.mouse.down();
-  await page.mouse.move(cx + 140, cy + 60, { steps: 8 });
+  await page.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.7, { steps: 8 });
   await page.mouse.up();
 
   await page.click('.tool[data-tool="number"]');
-  await page.mouse.click(cx + 180, cy - 100);
+  box = await canvasBox();
+  await page.mouse.click(box.x + box.width * 0.75, box.y + box.height * 0.25);
 
   const afterDraw = await page.evaluate(() => {
     // Undo-Schalter aktiv = History hat Einträge = Shapes committed
@@ -110,13 +113,14 @@ function check(name, ok, detail) {
     // Editor-Ansicht mit Bild + Annotationen (Vollseite)
     await page.setInputFiles('#fileInput', '/tmp/nonce.png');
     await page.waitForSelector('#editorSection:not(.hidden)', { timeout: 15000 });
-    const b2 = await page.locator('#editorCanvas').boundingBox();
     await page.click('.tool[data-tool="pen"]');
+    let b2 = await page.locator('#editorCanvas').boundingBox();
     await page.mouse.move(b2.x + b2.width * 0.3, b2.y + b2.height * 0.4);
     await page.mouse.down();
     await page.mouse.move(b2.x + b2.width * 0.7, b2.y + b2.height * 0.55, { steps: 12 });
     await page.mouse.up();
     await page.click('.tool[data-tool="number"]');
+    b2 = await page.locator('#editorCanvas').boundingBox();
     await page.mouse.click(b2.x + b2.width * 0.75, b2.y + b2.height * 0.25);
     await page.screenshot({ path: path.join(__dirname, '..', 'docs', 'redesign-editor.png'), fullPage: true });
     // Bonus: dunkle Startseite
