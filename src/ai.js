@@ -24,9 +24,13 @@ function aiConfigured() {
   return Boolean(process.env.AI_BASE_URL && process.env.AI_API_KEY && process.env.AI_MODEL);
 }
 
+function protocol() {
+  return (process.env.AI_PROTOCOL || 'openai').toLowerCase() === 'anthropic' ? 'anthropic' : 'openai';
+}
+
 function endpoint() {
   const base = (process.env.AI_BASE_URL || '').replace(/\/+$/, '');
-  return `${base}/chat/completions`;
+  return protocol() === 'anthropic' ? `${base}/v1/messages` : `${base}/chat/completions`;
 }
 
 function stripDataUrl(image) {
@@ -36,6 +40,10 @@ function stripDataUrl(image) {
 }
 
 async function chat(imageBase64, prompt, maxTokens) {
+  const isAnthropic = protocol() === 'anthropic';
+  const imagePart = isAnthropic
+    ? { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageBase64 } }
+    : { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } };
   const body = {
     model: process.env.AI_MODEL,
     max_tokens: maxTokens,
@@ -45,20 +53,21 @@ async function chat(imageBase64, prompt, maxTokens) {
         role: 'user',
         content: [
           { type: 'text', text: prompt },
-          {
-            type: 'image_url',
-            image_url: { url: `data:image/png;base64,${imageBase64}` },
-          },
+          imagePart,
         ],
       },
     ],
   };
+  const headers = { 'Content-Type': 'application/json' };
+  if (isAnthropic) {
+    headers['x-api-key'] = process.env.AI_API_KEY;
+    headers['anthropic-version'] = '2023-06-01';
+  } else {
+    headers.Authorization = `Bearer ${process.env.AI_API_KEY}`;
+  }
   const res = await fetch(endpoint(), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.AI_API_KEY}`,
-    },
+    headers,
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(60000),
   });
@@ -68,9 +77,15 @@ async function chat(imageBase64, prompt, maxTokens) {
     throw Object.assign(new Error(`KI-Dienst antwortete mit HTTP ${res.status}`), { status: 502, detail: text.slice(0, 200) });
   }
   const data = await res.json();
-  const content = data && data.choices && data.choices[0] && data.choices[0].message
-    ? String(data.choices[0].message.content || '')
-    : '';
+  let content = '';
+  if (isAnthropic) {
+    // Anthropic-Antwort: content[]-Blöcke; nur type=text zählt (thinking-Blöcke ignorieren)
+    if (Array.isArray(data && data.content)) {
+      content = data.content.filter((b) => b && b.type === 'text').map((b) => String(b.text || '')).join('\n');
+    }
+  } else if (data && data.choices && data.choices[0] && data.choices[0].message) {
+    content = String(data.choices[0].message.content || '');
+  }
   return content;
 }
 
